@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,18 +8,39 @@ namespace NekoSDKPacker
 {
     class Program
     {
+        private static string[] MsgZH =
+        {
+            "用法:\n" +
+            "   命令行:\n" +
+            "       NekoSDKPacker [目录]\n" +
+            "   或者:\n" +
+            "       将文件夹拖放到exe上",
+            "目录不存在。",
+            "打包成功: {0}",
+            "请按任意键继续..."
+        };
+
+        private static string[] MsgEN =
+        {
+            "Usage:\n" +
+            "   CommandLine:\n" +
+            "       NekoSDKPacker [folder]\n" +
+            "   Or:\n" +
+            "       Simply drag folder into exe",
+            "Specified folder doesn't exist.",
+            "Pack successfully: {0}",
+            "Press any key to continue..."
+        };
+
+        private static string[] Msg = CultureInfo.InstalledUICulture.Name.StartsWith("zh") ? MsgZH : MsgEN;
+
         static void Main(string[] args)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             if (args.Length != 1)
             {
-                Console.WriteLine(
-                    "Usage:\n" +
-                    "   CommandLine:\n" +
-                    "       NekoSDKPacker [folder]\n" +
-                    "   Or:\n" +
-                    "       Simply drag folder into exe.");
+                Console.WriteLine(Msg[0]);
                 WatingIfNecessary();
                 return;
             }
@@ -26,7 +48,7 @@ namespace NekoSDKPacker
             string folderPath = Path.TrimEndingDirectorySeparator(args[0]);
             if (!Directory.Exists(folderPath))
             {
-                Console.WriteLine("Specified folder doesn't exist.");
+                Console.WriteLine(Msg[1]);
                 WatingIfNecessary();
                 return;
             }
@@ -35,6 +57,7 @@ namespace NekoSDKPacker
             {
                 string filePath = folderPath + ".pak";
                 ArchiveWriter.Create(folderPath, filePath);
+                Console.WriteLine(Msg[2], filePath);
             }
             catch (Exception e)
             {
@@ -51,7 +74,7 @@ namespace NekoSDKPacker
         {
             if (GetConsoleProcessList(new uint[1], 1) == 1)
             {
-                Console.WriteLine("Press any key to continue...");
+                Console.WriteLine(Msg[3]);
                 Console.ReadKey();
             }
         }
