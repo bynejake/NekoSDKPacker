@@ -22,7 +22,8 @@ namespace NekoSDKPacker
                 return;
             }
 
-            if (!Directory.Exists(args[0]))
+            string folderPath = Path.TrimEndingDirectorySeparator(args[0]);
+            if (!Directory.Exists(folderPath))
             {
                 Console.WriteLine("Specified folder doesn't exist.");
                 WaitingForUser();
@@ -31,7 +32,8 @@ namespace NekoSDKPacker
 
             try
             {
-                ArchiveWriter.Create(args[0], args[0] + ".pak");
+                string filePath = folderPath + ".pak";
+                ArchiveWriter.Create(folderPath, filePath);
             }
             catch (Exception e)
             {
