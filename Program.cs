@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace NekoSDKPacker
@@ -18,7 +19,7 @@ namespace NekoSDKPacker
                     "       NekoSDKPacker [folder]\n" +
                     "   Or:\n" +
                     "       Simply drag folder into exe.");
-                WaitingForUser();
+                WatingIfNecessary();
                 return;
             }
 
@@ -26,7 +27,7 @@ namespace NekoSDKPacker
             if (!Directory.Exists(folderPath))
             {
                 Console.WriteLine("Specified folder doesn't exist.");
-                WaitingForUser();
+                WatingIfNecessary();
                 return;
             }
 
@@ -42,14 +43,20 @@ namespace NekoSDKPacker
             }
             finally
             {
-                WaitingForUser();
+                WatingIfNecessary();
             }
         }
 
-        private static void WaitingForUser()
+        private static void WatingIfNecessary()
         {
-            Console.WriteLine("Press any key to continue...");
-            Console.ReadKey();
+            if (GetConsoleProcessList(new uint[1], 1) == 1)
+            {
+                Console.WriteLine("Press any key to continue...");
+                Console.ReadKey();
+            }
         }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint GetConsoleProcessList(uint[] processList, uint processCount);
     }
 }
