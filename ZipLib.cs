@@ -5,44 +5,45 @@ namespace NekoSDKPacker
 {
     static class ZipLib
     {
-        public static byte[] Inflate(byte[] buffer, int capacity)
+        public static long DeflateFileFake(FileStream fs)
         {
-            var block = new byte[256];
-            var outputStream = new MemoryStream(capacity);
+            using var cs = new FakeStream();
+            DeflateFile(fs, cs);
 
-            var inflater = new Inflater();
-            using (var memoryStream = new MemoryStream(buffer))
-            using (var inflaterInputStream = new InflaterInputStream(memoryStream, inflater))
-            {
-                while (true)
-                {
-                    int numBytes = inflaterInputStream.Read(block, 0, block.Length);
-                    if (numBytes < 1)
-                        break;
-                    outputStream.Write(block, 0, numBytes);
-                }
-            }
-
-            return outputStream.ToArray();
+            return cs.Length;
         }
 
-        public static byte[] Deflate(byte[] buffer, int capacity, bool appendOriginalLength)
+        public static byte[] DeflateFile(FileStream fs)
         {
-            var deflater = new Deflater(Deflater.BEST_COMPRESSION);
-            using (var memoryStream = new MemoryStream(capacity))
-            using (var deflaterOutputStream = new DeflaterOutputStream(memoryStream, deflater))
-            {
-                deflaterOutputStream.Write(buffer, 0, buffer.Length);
-                deflaterOutputStream.Flush();
-                deflaterOutputStream.Finish();
+            using var ms = new MemoryStream((int)fs.Length);
+            DeflateFile(fs, ms);
 
-                if (appendOriginalLength)
-                {
-                    memoryStream.Write(BitConverter.GetBytes(buffer.Length));
-                }
+            return ms.ToArray();
+        }
 
-                return memoryStream.ToArray();
-            }
+        static void DeflateFile(FileStream fs, Stream bos)
+        {
+            using var dos = new DeflaterOutputStream(bos, new Deflater(Deflater.BEST_COMPRESSION));
+            fs.CopyTo(dos);
+            dos.Flush();
+            dos.Finish();
+
+            bos.Write(BitConverter.GetBytes((int)fs.Length));
+        }
+
+        sealed class FakeStream : Stream
+        {
+            private long _bytesWritten;
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => _bytesWritten;
+            public override long Position { get => _bytesWritten; set => throw new NotSupportedException(); }
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => _bytesWritten += count;
         }
     }
 }
