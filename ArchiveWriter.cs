@@ -59,7 +59,7 @@ namespace NekoSDKPacker
                 // Record cursor
                 cursor = vs.Position;
 
-                // Use half of cpu
+                // Use 2/3 of cpu
                 var po = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 / 3 };
 
                 // Compute length (parallel)
