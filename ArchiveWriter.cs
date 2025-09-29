@@ -71,7 +71,6 @@ namespace NekoSDKPacker
                     Console.WriteLine($"Reading \"{entry.RelativePath}\"");
 
                     using var fs = File.OpenRead(entry.FullPath);
-
                     lengths[i] = ZipLib.DeflateFileFake(fs);
                 });
 
@@ -112,7 +111,6 @@ namespace NekoSDKPacker
 
             return (uint)hash;
         }
-
 
         static byte[] EncryptData(byte[] data)
         {
