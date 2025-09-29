@@ -19,7 +19,7 @@ Simply drag folder into exe
 
 * This tool creates file with signature `NEKOPACK4A`, Please check your original file before use this tool
 
-* [.NET 6.0](https://dotnet.microsoft.com/download)
+* [.NET 8.0](https://dotnet.microsoft.com/download)
 
 ### Credits
 
