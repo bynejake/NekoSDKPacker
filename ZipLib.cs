@@ -5,17 +5,19 @@ namespace NekoSDKPacker
 {
     static class ZipLib
     {
-        public static long DeflateFileFake(FileStream fs)
+        public static int DeflateFileFake(string path)
         {
+            using var fs = File.OpenRead(path);
             using var cs = new FakeStream();
             DeflateFile(fs, cs);
-
-            return cs.Length;
+            
+            return Convert.ToInt32(cs.Length);
         }
 
-        public static byte[] DeflateFile(FileStream fs)
+        public static byte[] DeflateFile(string path)
         {
-            using var ms = new MemoryStream((int)fs.Length);
+            using var fs = File.OpenRead(path);
+            using var ms = new MemoryStream();
             DeflateFile(fs, ms);
 
             return ms.ToArray();
@@ -28,7 +30,7 @@ namespace NekoSDKPacker
             dos.Flush();
             dos.Finish();
 
-            bos.Write(BitConverter.GetBytes((int)fs.Length));
+            bos.Write(BitConverter.GetBytes(Convert.ToInt32(fs.Length)));
         }
 
         sealed class FakeStream : Stream
@@ -38,7 +40,7 @@ namespace NekoSDKPacker
             public override bool CanSeek => false;
             public override bool CanWrite => true;
             public override long Length => _bytesWritten;
-            public override long Position { get => _bytesWritten; set => throw new NotSupportedException(); }
+            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
             public override void Flush() { }
             public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();

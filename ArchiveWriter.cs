@@ -5,9 +5,9 @@ namespace NekoSDKPacker
 {
     static class ArchiveWriter
     {
-        // Initialize entry list
         public static void Create(string folderPath, string filePath)
         {
+            // Initialize entry list
             var entries = new List<TEntry>();
             foreach (var _ in Directory.EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories))
             {
@@ -43,9 +43,9 @@ namespace NekoSDKPacker
                     vs.Write(nameBytes);
                     vs.WriteByte(0); // null-terminated
 
-                    // Record hash & position
-                    entry.Hash = ComputeHash(nameBytes);
+                    // Record position & hash
                     entry.Position = vs.Position;
+                    entry.Hash = ComputeHash(nameBytes);
 
                     // Placeholder for offset & length
                     vs.Write(BitConverter.GetBytes(0));
@@ -54,7 +54,7 @@ namespace NekoSDKPacker
                 vs.Write(BitConverter.GetBytes(0)); // end of index
 
                 // Write index size
-                va.Write(0xA, (uint)(vs.Position - idxPos));
+                va.Write(0xA, Convert.ToUInt32(vs.Position - idxPos));
 
                 // Record cursor
                 cursor = vs.Position;
@@ -63,35 +63,25 @@ namespace NekoSDKPacker
                 var po = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 / 3 };
 
                 // Compute length (parallel)
-                var lengths = new long[entries.Count];
-                Parallel.ForEach(Enumerable.Range(0, entries.Count), po, i =>
+                Parallel.ForEach(entries, po, entry =>
                 {
-                    var entry = entries[i];
-
                     Console.WriteLine($"Reading \"{entry.RelativePath}\"");
 
-                    using var fs = File.OpenRead(entry.FullPath);
-                    lengths[i] = ZipLib.DeflateFileFake(fs);
+                    entry.Length = Convert.ToUInt32(ZipLib.DeflateFileFake(entry.FullPath));
                 });
 
                 // Compute offset & cursor (sequential)
-                var offsets = new long[entries.Count];
-                for (int i = 0; i < entries.Count; i++) { offsets[i] = cursor; cursor += lengths[i]; }
+                entries.ForEach(entry => { entry.Offset = Convert.ToUInt32(cursor); cursor += entry.Length; });
 
                 // Write data | Backfill offset & length (parallel)
-                Parallel.ForEach(Enumerable.Range(0, entries.Count), po, i =>
+                Parallel.ForEach(entries, po, entry =>
                 {
-                    var entry = entries[i];
-
                     Console.WriteLine($"Writing \"{entry.RelativePath}\"");
 
-                    using var fs = File.OpenRead(entry.FullPath);
-                    var data = EncryptData(ZipLib.DeflateFile(fs));
+                    va.WriteArray(entry.Offset, EncryptData(ZipLib.DeflateFile(entry.FullPath)), 0, Convert.ToInt32(entry.Length)); // data
 
-                    va.WriteArray(offsets[i], data, 0, data.Length); // data
-
-                    va.Write(entry.Position, (uint)offsets[i] ^ entry.Hash); // offset
-                    va.Write(entry.Position + sizeof(uint), (uint)data.Length ^ entry.Hash); // length
+                    va.Write(entry.Position, entry.Offset ^ entry.Hash); // offset
+                    va.Write(entry.Position + sizeof(uint), entry.Length ^ entry.Hash); // length
                 });
             }
 
@@ -104,10 +94,7 @@ namespace NekoSDKPacker
         {
             int hash = 0;
 
-            for (var i = 0; i < data.Length; i++)
-            {
-                hash += (sbyte)data[i];
-            }
+            foreach (var b in data) hash += (sbyte)b;
 
             return (uint)hash;
         }
@@ -134,6 +121,8 @@ namespace NekoSDKPacker
             public string RelativePath;
             public long Position;
             public uint Hash;
+            public uint Length;
+            public uint Offset;
         }
     }
 }
